@@ -20,7 +20,7 @@ kubectl config use-context minikube
 
 
 # Grant access to the user
-1. Create a Role
+1. Create a Role/ClusterRole
 
 
 cat <<EOF > role.yml
@@ -32,11 +32,24 @@ metadata:
 rules:
 - apiGroups: [""] # "" indicates the core API group
   resources: ["pods"]
+  resourceNames: ["blue", "red"]
+  verbs: ["get", "watch", "list"]
+EOF
+
+cat <<EOF > cluster-role.yml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  #namespace: test
+  name: pod-reader
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods"]
   verbs: ["get", "watch", "list"]
 EOF
 
 
-2.  Create a BindingRole
+2.  Create a RoleBinding/ClusterRoleBinding
 cat <<EOF > role-binding.yml
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -52,3 +65,22 @@ roleRef:
   name: pod-reader # must match the name of the Role
   apiGroup: rbac.authorization.k8s.io
 EOF
+
+cat <<EOF > cluster-role-binding.yml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: read-pods
+  #namespace: test
+subjects:
+- kind: User
+  name: user1 # Name is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role #this must be Role or ClusterRole
+  name: pod-reader # must match the name of the Role
+  apiGroup: rbac.authorization.k8s.io
+EOF
+
+kubectl auth can-i create deployments
+kubectl auth can-i create deployments --as user1
